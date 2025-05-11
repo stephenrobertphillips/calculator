@@ -1,68 +1,74 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Voltage Drop and Fuse Calculator</title>
-  <style>
-    body { font-family: Arial, sans-serif; margin: 20px; }
-    label, select, input { display: block; margin: 10px 0; }
-    .result { margin-top: 20px; padding: 10px; border: 1px solid #ccc; background: #f9f9f9; }
-  </style>
+  <title>Voltage Drop & Fuse Calculator</title>
 </head>
 <body>
-  <h1>Voltage Drop and Fuse Calculator</h1>
-  <label>System Voltage
-    <select id="systemVoltage">
-      <option value="12">12V</option>
-      <option value="24">24V</option>
-      <option value="48">48V</option>
-      <option value="manual">Manual Input</option>
+  <h2>Voltage Drop & Fuse Calculator</h2>
+  
+  <label>System Voltage (V): <input type="number" id="voltage" value="12"></label><br><br>
+  <label>Load Current (A): <input type="number" id="current" value="30"></label><br><br>
+  <label>Round-Trip Cable Length (m): <input type="number" id="length" value="10"></label><br><br>
+  <label>Selected Cable Size (mm²): 
+    <select id="cableSize">
+      <option value="2.5">2.5</option>
+      <option value="4">4</option>
+      <option value="6">6</option>
+      <option value="10">10</option>
+      <option value="16">16</option>
+      <option value="25">25</option>
     </select>
-    <input type="number" id="manualVoltage" placeholder="Enter voltage" style="display:none" />
-  </label>
-  <label>Inverter or Load Wattage (W)
-    <input type="number" id="loadWattage" />
-  </label>
-  <label>Round-Trip Cable Length (m)
-    <input type="number" id="cableLength" />
-  </label>
-  <label>In Conduit Derating
-    <select id="inConduit">
-      <option value="no">No</option>
-      <option value="yes">Yes</option>
-    </select>
-  </label>
+  </label><br><br>
+
   <button onclick="calculate()">Calculate</button>
 
-  <div class="result" id="results" style="display:none"></div>
+  <h3>Results</h3>
+  <p id="voltageDrop">Voltage Drop: </p>
+  <p id="dropPercent">Voltage Drop (%): </p>
+  <p id="fuseSuggestion">Recommended Fuse: </p>
+  <p id="recommendedCable">Recommended Minimum Cable Size: </p>
 
   <script>
-    const resistivity = 0.0175; // Ohm.mm2/m for copper
-    const maxVoltageDropPercent = 3;
-    const cableSizes = [1.5, 2.5, 4, 6, 10, 16, 25, 35, 50, 70, 90];
-
-    document.getElementById('systemVoltage').addEventListener('change', function() {
-      document.getElementById('manualVoltage').style.display = this.value === 'manual' ? 'block' : 'none';
-    });
-
     function calculate() {
-      const voltage = document.getElementById('systemVoltage').value === 'manual' ?
-        parseFloat(document.getElementById('manualVoltage').value) :
-        parseFloat(document.getElementById('systemVoltage').value);
-      const watts = parseFloat(document.getElementById('loadWattage').value);
-      const length = parseFloat(document.getElementById('cableLength').value);
-      const inConduit = document.getElementById('inConduit').value === 'yes';
+      const V = parseFloat(document.getElementById("voltage").value);
+      const I = parseFloat(document.getElementById("current").value);
+      const L = parseFloat(document.getElementById("length").value);
+      const A = parseFloat(document.getElementById("cableSize").value);
 
-      if (!voltage || !watts || !length) return alert("Please complete all required fields.");
+      const resistivity = 0.0175; // Copper ohm·mm²/m
+      const R = (resistivity * L * 2) / A; // Ohms
+      const Vdrop = I * R; // Volts
+      const percentDrop = (Vdrop / V) * 100;
 
-      const current = watts / voltage;
-      const deratingFactor = inConduit ? 1.2 : 1; // Simplified derating multiplier
+      // Fuse recommendation
+      let fuse;
+      if (I <= 25) fuse = "Blade Fuse: 25A";
+      else if (I <= 40) fuse = "MIDI Fuse: 40A";
+      else if (I <= 60) fuse = "MIDI Fuse: 60A";
+      else if (I <= 100) fuse = "MIDI Fuse: 100A";
+      else if (I <= 180) fuse = "MIDI Fuse: 180A";
+      else if (I <= 600) fuse = "MEGA Fuse: 600A";
+      else fuse = "Type 3 High Current Fuse (custom)";
 
-      // Determine cable size to keep voltage drop within 3%
-      const maxDrop = voltage * (maxVoltageDropPercent / 100);
-      let cableSize = null;
+      // Recommend minimum cable size
+      const sizes = [2.5, 4, 6, 10, 16, 25];
+      let recommendedSize = "N/A";
+      for (let size of sizes) {
+        const rTest = (resistivity * L * 2) / size;
+        const vDropTest = I * rTest;
+        const percentTest = (vDropTest / V) * 100;
+        if (percentTest <= 3) {
+          recommendedSize = `${size} mm²`;
+          break;
+        }
+      }
 
-      for (let size of cableSizes) {
-        const resistance = (resistivity * (length * 2)) / size;
-        const vDrop = resistance * current * deratingFactor;
+      // Output
+      document.getElementById("voltageDrop").innerText = `Voltage Drop: ${Vdrop.toFixed(2)} V`;
+      document.getElementById("dropPercent").innerText = `Voltage Drop (%): ${percentDrop.toFixed(2)} %`;
+      document.getElementById("fuseSuggestion").innerText = `Recommended Fuse: ${fuse}`;
+      document.getElementById("recommendedCable").innerText = `Recommended Minimum Cable Size: ${recommendedSize}`;
+    }
+  </script>
+</body>
+</html>
