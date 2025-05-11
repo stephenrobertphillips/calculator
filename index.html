@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>DC Voltage Drop Calculator</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 2em;
+      max-width: 600px;
+      margin: auto;
+    }
+    label {
+      display: block;
+      margin-top: 10px;
+    }
+    input, select {
+      width: 100%;
+      padding: 8px;
+      margin-top: 5px;
+    }
+    .result {
+      margin-top: 20px;
+      padding: 10px;
+      background: #eef;
+      border-radius: 5px;
+    }
+  </style>
+</head>
+<body>
+  <h2>DC Voltage Drop Calculator</h2>
+  <label>System Voltage (V):
+    <input type="number" id="voltage" value="12">
+  </label>
+  <label>Current (A):
+    <input type="number" id="current" value="10">
+  </label>
+  <label>One-way Cable Length (m):
+    <input type="number" id="length" value="5">
+  </label>
+  <label>Cable Size (mm²):
+    <input type="number" id="cableSize" value="6">
+  </label>
+  <label>Cable Material:
+    <select id="material">
+      <option value="copper">Copper</option>
+      <option value="aluminum">Aluminum</option>
+    </select>
+  </label>
+
+  <button onclick="calculate()">Calculate</button>
+
+  <div class="result" id="output"></div>
+
+  <script>
+    function calculate() {
+      const voltage = parseFloat(document.getElementById("voltage").value);
+      const current = parseFloat(document.getElementById("current").value);
+      const length = parseFloat(document.getElementById("length").value);
+      const cableSize = parseFloat(document.getElementById("cableSize").value);
+      const material = document.getElementById("material").value;
+
+      const resistivity = material === "copper" ? 0.0175 : 0.0282; // ohm·mm²/m
+      const resistance = (2 * length * resistivity) / cableSize;
+      const vDrop = resistance * current;
+      const percentDrop = (vDrop / voltage) * 100;
+
+      const output = `
+        Voltage Drop: <strong>${vDrop.toFixed(2)} V</strong><br>
+        Percent Drop: <strong>${percentDrop.toFixed(2)}%</strong>
+      `;
+
+      document.getElementById("output").innerHTML = output;
+    }
+  </script>
+</body>
+</html>
