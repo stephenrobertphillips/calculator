@@ -2,76 +2,76 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>DC Voltage Drop Calculator</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Voltage Drop and Fuse Calculator</title>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      padding: 2em;
-      max-width: 600px;
-      margin: auto;
-    }
-    label {
-      display: block;
-      margin-top: 10px;
-    }
-    input, select {
-      width: 100%;
-      padding: 8px;
-      margin-top: 5px;
-    }
-    .result {
-      margin-top: 20px;
-      padding: 10px;
-      background: #eef;
-      border-radius: 5px;
-    }
+    body { font-family: Arial, sans-serif; }
+    input, button { margin: 10px; padding: 5px; }
+    .output { font-weight: bold; }
   </style>
 </head>
 <body>
-  <h2>DC Voltage Drop Calculator</h2>
-  <label>System Voltage (V):
-    <input type="number" id="voltage" value="12">
-  </label>
-  <label>Current (A):
-    <input type="number" id="current" value="10">
-  </label>
-  <label>One-way Cable Length (m):
-    <input type="number" id="length" value="5">
-  </label>
-  <label>Cable Size (mm²):
-    <input type="number" id="cableSize" value="6">
-  </label>
-  <label>Cable Material:
-    <select id="material">
-      <option value="copper">Copper</option>
-      <option value="aluminum">Aluminum</option>
-    </select>
-  </label>
 
-  <button onclick="calculate()">Calculate</button>
+<h2>Voltage Drop and Fuse Calculator</h2>
 
-  <div class="result" id="output"></div>
+<form id="calcForm">
+  <label for="voltage">System Voltage (V):</label>
+  <select id="voltage">
+    <option value="12">12V</option>
+    <option value="24">24V</option>
+    <option value="48">48V</option>
+  </select><br>
 
-  <script>
-    function calculate() {
-      const voltage = parseFloat(document.getElementById("voltage").value);
-      const current = parseFloat(document.getElementById("current").value);
-      const length = parseFloat(document.getElementById("length").value);
-      const cableSize = parseFloat(document.getElementById("cableSize").value);
-      const material = document.getElementById("material").value;
+  <label for="inverterWatt">Inverter Wattage (W):</label>
+  <input type="number" id="inverterWatt" required><br>
 
-      const resistivity = material === "copper" ? 0.0175 : 0.0282; // ohm·mm²/m
-      const resistance = (2 * length * resistivity) / cableSize;
-      const vDrop = resistance * current;
-      const percentDrop = (vDrop / voltage) * 100;
+  <label for="cableLength">Cable Length (m):</label>
+  <input type="number" id="cableLength" required><br>
 
-      const output = `
-        Voltage Drop: <strong>${vDrop.toFixed(2)} V</strong><br>
-        Percent Drop: <strong>${percentDrop.toFixed(2)}%</strong>
-      `;
+  <button type="button" onclick="calculate()">Calculate</button>
+</form>
 
-      document.getElementById("output").innerHTML = output;
+<div class="output">
+  <h3>Results:</h3>
+  <p id="currentOutput"></p>
+  <p id="cableSizeOutput"></p>
+  <p id="voltageDropOutput"></p>
+  <p id="fuseSizeOutput"></p>
+</div>
+
+<script>
+  function calculate() {
+    const voltage = parseFloat(document.getElementById('voltage').value);
+    const inverterWatt = parseFloat(document.getElementById('inverterWatt').value);
+    const cableLength = parseFloat(document.getElementById('cableLength').value);
+    
+    // Calculate current (I = W / V)
+    const current = inverterWatt / voltage;
+
+    // Calculate voltage drop for 1mm² copper wire (approximate)
+    const resistance = 0.0178; // ohms per meter for 1mm² copper wire
+    const voltageDrop = (2 * cableLength * current * resistance) / 1000; // V
+    
+    // Recommend cable size based on current
+    let cableSize = "";
+    if (current <= 10) {
+      cableSize = "1.5mm²";
+    } else if (current <= 20) {
+      cableSize = "2.5mm²";
+    } else {
+      cableSize = "4mm²";
     }
-  </script>
+    
+    // Fuse size (125% of max current)
+    const fuseSize = (current * 1.25).toFixed(1);
+
+    // Output results
+    document.getElementById('currentOutput').textContent = `Current: ${current.toFixed(2)} A`;
+    document.getElementById('cableSizeOutput').textContent = `Recommended Cable Size: ${cableSize}`;
+    document.getElementById('voltageDropOutput').textContent = `Voltage Drop: ${voltageDrop.toFixed(2)} V`;
+    document.getElementById('fuseSizeOutput').textContent = `Recommended Fuse Size: ${fuseSize} A`;
+  }
+</script>
+
 </body>
 </html>
