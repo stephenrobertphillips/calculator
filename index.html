@@ -5,70 +5,64 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Voltage Drop and Fuse Calculator</title>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      margin: 20px;
-      background-color: #f4f4f4;
-    }
-    .container {
-      max-width: 800px;
-      margin: auto;
-      padding: 20px;
-      background: white;
-      border-radius: 10px;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-    }
-    .result {
-      font-weight: bold;
-    }
-    .warning {
-      color: orange;
-    }
-    .error {
-      color: red;
-    }
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    label, select, input { display: block; margin: 10px 0; }
+    .result { margin-top: 20px; padding: 10px; border: 1px solid #ccc; background: #f9f9f9; }
   </style>
 </head>
 <body>
-  <div class="container">
-    <h2>Voltage Drop and Fuse Calculator</h2>
-    <label>System Voltage (V): <input type="number" id="voltage" value="12" /></label><br /><br />
-    <label>Load Wattage (W): <input type="number" id="wattage" value="120" /></label><br /><br />
-    <label>Round-trip Cable Length (meters): <input type="number" id="length" value="10" /></label><br /><br />
-    <label>Cross-sectional Area (mm²): <input type="number" id="csa" value="4" /></label><br /><br />
-    <label>Number of Parallel Cables: <input type="number" id="parallel" value="1" /></label><br /><br />
-    <label>Conductor Resistance (Ohm/km): <input type="number" id="resistance" value="4.61" /></label><br /><br />
+  <h1>Voltage Drop and Fuse Calculator</h1>
+  <label>System Voltage
+    <select id="systemVoltage">
+      <option value="12">12V</option>
+      <option value="24">24V</option>
+      <option value="48">48V</option>
+      <option value="manual">Manual Input</option>
+    </select>
+    <input type="number" id="manualVoltage" placeholder="Enter voltage" style="display:none" />
+  </label>
+  <label>Inverter or Load Wattage (W)
+    <input type="number" id="loadWattage" />
+  </label>
+  <label>Round-Trip Cable Length (m)
+    <input type="number" id="cableLength" />
+  </label>
+  <label>In Conduit Derating
+    <select id="inConduit">
+      <option value="no">No</option>
+      <option value="yes">Yes</option>
+    </select>
+  </label>
+  <button onclick="calculate()">Calculate</button>
 
-    <button onclick="calculate()">Calculate</button>
-
-    <h3>Results:</h3>
-    <div id="results"></div>
-  </div>
+  <div class="result" id="results" style="display:none"></div>
 
   <script>
+    const resistivity = 0.0175; // Ohm.mm2/m for copper
+    const maxVoltageDropPercent = 3;
+    const cableSizes = [1.5, 2.5, 4, 6, 10, 16, 25, 35, 50, 70, 90];
+
+    document.getElementById('systemVoltage').addEventListener('change', function() {
+      document.getElementById('manualVoltage').style.display = this.value === 'manual' ? 'block' : 'none';
+    });
+
     function calculate() {
-      const voltage = parseFloat(document.getElementById('voltage').value);
-      const wattage = parseFloat(document.getElementById('wattage').value);
-      const length = parseFloat(document.getElementById('length').value);
-      const csa = parseFloat(document.getElementById('csa').value);
-      const parallel = parseFloat(document.getElementById('parallel').value);
-      const resistancePerKm = parseFloat(document.getElementById('resistance').value);
+      const voltage = document.getElementById('systemVoltage').value === 'manual' ?
+        parseFloat(document.getElementById('manualVoltage').value) :
+        parseFloat(document.getElementById('systemVoltage').value);
+      const watts = parseFloat(document.getElementById('loadWattage').value);
+      const length = parseFloat(document.getElementById('cableLength').value);
+      const inConduit = document.getElementById('inConduit').value === 'yes';
 
-      const current = wattage / voltage;
-      const resistance = (resistancePerKm / 1000) / (csa * parallel);
-      const vDrop = current * resistance * length;
-      const percentDrop = (vDrop / voltage) * 100;
+      if (!voltage || !watts || !length) return alert("Please complete all required fields.");
 
-      let vClass = '';
-      if (percentDrop > 10) vClass = 'error';
-      else if (percentDrop > 3) vClass = 'warning';
+      const current = watts / voltage;
+      const deratingFactor = inConduit ? 1.2 : 1; // Simplified derating multiplier
 
-      let fuse;
-      const roundedCurrent = Math.ceil(current);
-      if (roundedCurrent <= 25) fuse = nearest([5, 10, 15, 20, 25], roundedCurrent) + 'A Blade';
-      else if (roundedCurrent <= 180) fuse = nearest([30, 40, 50, 60, 80, 100, 125, 150, 175, 180], roundedCurrent) + 'A MIDI';
-      else if (roundedCurrent <= 600) fuse = nearest([200, 250, 300, 350, 400, 500, 600], roundedCurrent) + 'A MEGA';
-      else fuse = '>600A Type 3';
+      // Determine cable size to keep voltage drop within 3%
+      const maxDrop = voltage * (maxVoltageDropPercent / 100);
+      let cableSize = null;
 
-      document.getElementById('results').innerHTML = `
-        Load Current: <strong>${current.toFixed(2)} A</strong><br />
+      for (let size of cableSizes) {
+        const resistance = (resistivity * (length * 2)) / size;
+        const vDrop = resistance * current * deratingFactor;
