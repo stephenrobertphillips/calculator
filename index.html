@@ -94,8 +94,12 @@
         cableSize = '35mm²';
       } else if (current <= 250) {
         cableSize = '50mm²';
+      } else if (current <= 300) {
+        cableSize = '70mm²';
+      } else if (current <= 350) {
+        cableSize = '90mm²';
       } else {
-        cableSize = '70mm² or larger';
+        cableSize = 'Above 90mm² – consult a specialist';
       }
 
       // Calculate voltage drop
@@ -110,7 +114,8 @@
         '25': 0.727,
         '35': 0.524,
         '50': 0.387,
-        '70': 0.268
+        '70': 0.268,
+        '90': 0.193
       };
 
       // Extract numeric value from cableSize
@@ -141,19 +146,13 @@
       } else if (fuseSize <= 150) {
         fuseType = 'MIDI Fuse';
       } else {
-        fuseType = 'MIDI or MEGA Fuse';
+        fuseType = 'MEGA Fuse';
       }
 
       // Display results
-      document.getElementById('currentOutput').textContent = `Current: ${current.toFixed(2)} A`;
+      document.getElementById('currentOutput').textContent = `Current: ${current.toFixed(1)} A`;
       document.getElementById('cableSizeOutput').textContent = `Recommended Cable Size: ${cableSize}`;
       const voltageDropOutput = document.getElementById('voltageDropOutput');
       voltageDropOutput.textContent = `Voltage Drop: ${voltageDrop.toFixed(2)} V (${voltageDropPercent.toFixed(2)}%)${voltageDropNote}`;
       voltageDropOutput.className = voltageDropClass;
-      document.getElementById('fuseSizeOutput').textContent = `Recommended Fuse Size: ${fuseSize} A`;
-      document.getElementById('fuseTypeOutput').textContent = `Recommended Fuse Type: ${fuseType}`;
-    }
-  </script>
-
-</body>
-</html>
+      document.getElementById('fuseSizeOutput').textContent = `Recommended Fuse Size: ${
