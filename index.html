@@ -1,77 +1,159 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Voltage Drop and Fuse Calculator</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Voltage Drop & Fuse Calculator</title>
   <style>
-    body { font-family: Arial, sans-serif; }
-    input, button { margin: 10px; padding: 5px; }
-    .output { font-weight: bold; }
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    label, select, input { display: block; margin: 10px 0; }
+    .output p { font-weight: bold; }
+    .warning { color: orange; }
+    .danger { color: red; }
   </style>
 </head>
 <body>
 
-<h2>Voltage Drop and Fuse Calculator</h2>
+  <h2>Voltage Drop & Fuse Calculator</h2>
 
-<form id="calcForm">
-  <label for="voltage">System Voltage (V):</label>
-  <select id="voltage">
-    <option value="12">12V</option>
-    <option value="24">24V</option>
-    <option value="48">48V</option>
-  </select><br>
+  <form id="calcForm">
+    <label for="voltage">System Voltage (V):</label>
+    <select id="voltage" onchange="toggleCustomVoltage()">
+      <option value="12">12V</option>
+      <option value="24">24V</option>
+      <option value="48">48V</option>
+      <option value="custom">Custom</option>
+    </select>
+    <input type="number" id="customVoltage" placeholder="Enter custom voltage" style="display:none;" />
 
-  <label for="inverterWatt">Inverter Wattage (W):</label>
-  <input type="number" id="inverterWatt" required><br>
+    <label for="inverterWatt">Inverter or Load Wattage (W):</label>
+    <input type="number" id="inverterWatt" required />
 
-  <label for="cableLength">Cable Length (m):</label>
-  <input type="number" id="cableLength" required><br>
+    <label for="cableLength">Cable Length (m) – both ways (complete circuit length):</label>
+    <input type="number" id="cableLength" required />
 
-  <button type="button" onclick="calculate()">Calculate</button>
-</form>
+    <button type="button" onclick="calculate()">Calculate</button>
+  </form>
 
-<div class="output">
-  <h3>Results:</h3>
-  <p id="currentOutput"></p>
-  <p id="cableSizeOutput"></p>
-  <p id="voltageDropOutput"></p>
-  <p id="fuseSizeOutput"></p>
-</div>
+  <div class="output">
+    <h3>Results:</h3>
+    <p id="currentOutput"></p>
+    <p id="cableSizeOutput"></p>
+    <p id="voltageDropOutput"></p>
+    <p id="fuseSizeOutput"></p>
+    <p id="fuseTypeOutput"></p>
+  </div>
 
-<script>
-  function calculate() {
-    const voltage = parseFloat(document.getElementById('voltage').value);
-    const inverterWatt = parseFloat(document.getElementById('inverterWatt').value);
-    const cableLength = parseFloat(document.getElementById('cableLength').value);
-    
-    // Calculate current (I = W / V)
-    const current = inverterWatt / voltage;
-
-    // Calculate voltage drop for 1mm² copper wire (approximate)
-    const resistance = 0.0178; // ohms per meter for 1mm² copper wire
-    const voltageDrop = (2 * cableLength * current * resistance) / 1000; // V
-    
-    // Recommend cable size based on current
-    let cableSize = "";
-    if (current <= 10) {
-      cableSize = "1.5mm²";
-    } else if (current <= 20) {
-      cableSize = "2.5mm²";
-    } else {
-      cableSize = "4mm²";
+  <script>
+    function toggleCustomVoltage() {
+      const voltageSelect = document.getElementById('voltage');
+      const customVoltageInput = document.getElementById('customVoltage');
+      if (voltageSelect.value === 'custom') {
+        customVoltageInput.style.display = 'block';
+      } else {
+        customVoltageInput.style.display = 'none';
+      }
     }
-    
-    // Fuse size (125% of max current)
-    const fuseSize = (current * 1.25).toFixed(1);
 
-    // Output results
-    document.getElementById('currentOutput').textContent = `Current: ${current.toFixed(2)} A`;
-    document.getElementById('cableSizeOutput').textContent = `Recommended Cable Size: ${cableSize}`;
-    document.getElementById('voltageDropOutput').textContent = `Voltage Drop: ${voltageDrop.toFixed(2)} V`;
-    document.getElementById('fuseSizeOutput').textContent = `Recommended Fuse Size: ${fuseSize} A`;
-  }
-</script>
+    function calculate() {
+      const voltageSelect = document.getElementById('voltage');
+      const customVoltageInput = document.getElementById('customVoltage');
+      const inverterWatt = parseFloat(document.getElementById('inverterWatt').value);
+      const cableLength = parseFloat(document.getElementById('cableLength').value);
+
+      let voltage = parseFloat(voltageSelect.value);
+      if (voltageSelect.value === 'custom') {
+        voltage = parseFloat(customVoltageInput.value);
+      }
+
+      if (isNaN(voltage) || isNaN(inverterWatt) || isNaN(cableLength)) {
+        alert('Please enter valid numbers for all fields.');
+        return;
+      }
+
+      // Calculate current
+      const current = inverterWatt / voltage;
+
+      // Determine cable size based on current-carrying capacity
+      let cableSize = '';
+      if (current <= 10) {
+        cableSize = '2mm²';
+      } else if (current <= 15) {
+        cableSize = '3mm²';
+      } else if (current <= 20) {
+        cableSize = '4mm²';
+      } else if (current <= 25) {
+        cableSize = '5mm²';
+      } else if (current <= 50) {
+        cableSize = '6mm²';
+      } else if (current <= 100) {
+        cableSize = '16mm²';
+      } else if (current <= 150) {
+        cableSize = '25mm²';
+      } else if (current <= 200) {
+        cableSize = '35mm²';
+      } else if (current <= 250) {
+        cableSize = '50mm²';
+      } else {
+        cableSize = '70mm² or larger';
+      }
+
+      // Calculate voltage drop
+      // Resistance values (Ohm/km) for copper conductors at 20°C
+      const resistanceTable = {
+        '2': 8.71,
+        '3': 5.89,
+        '4': 4.37,
+        '5': 3.5,
+        '6': 2.91,
+        '16': 1.15,
+        '25': 0.727,
+        '35': 0.524,
+        '50': 0.387,
+        '70': 0.268
+      };
+
+      // Extract numeric value from cableSize
+      const cableSizeValue = parseFloat(cableSize);
+      const resistancePerKm = resistanceTable[cableSizeValue] || 0.2; // Default to 0.2 if size not in table
+
+      const resistancePerMeter = resistancePerKm / 1000;
+      const voltageDrop = 2 * cableLength * current * resistancePerMeter;
+      const voltageDropPercent = (voltageDrop / voltage) * 100;
+
+      // Determine voltage drop compliance
+      let voltageDropClass = '';
+      let voltageDropNote = '';
+      if (voltageDropPercent > 10) {
+        voltageDropClass = 'danger';
+        voltageDropNote = ' (Non-compliant with AS/NZS 3001.2:2022)';
+      } else if (voltageDropPercent > 3) {
+        voltageDropClass = 'warning';
+      }
+
+      // Calculate fuse size (150% of current)
+      const fuseSize = Math.ceil(current * 1.5);
+
+      // Determine fuse type
+      let fuseType = '';
+      if (fuseSize <= 25) {
+        fuseType = 'Blade Fuse';
+      } else if (fuseSize <= 150) {
+        fuseType = 'MIDI Fuse';
+      } else {
+        fuseType = 'MIDI or MEGA Fuse';
+      }
+
+      // Display results
+      document.getElementById('currentOutput').textContent = `Current: ${current.toFixed(2)} A`;
+      document.getElementById('cableSizeOutput').textContent = `Recommended Cable Size: ${cableSize}`;
+      const voltageDropOutput = document.getElementById('voltageDropOutput');
+      voltageDropOutput.textContent = `Voltage Drop: ${voltageDrop.toFixed(2)} V (${voltageDropPercent.toFixed(2)}%)${voltageDropNote}`;
+      voltageDropOutput.className = voltageDropClass;
+      document.getElementById('fuseSizeOutput').textContent = `Recommended Fuse Size: ${fuseSize} A`;
+      document.getElementById('fuseTypeOutput').textContent = `Recommended Fuse Type: ${fuseType}`;
+    }
+  </script>
 
 </body>
 </html>
