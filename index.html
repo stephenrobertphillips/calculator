@@ -1,84 +1,22 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Voltage Drop & Fuse Calculator</title>
-  <style>
-    body { font-family: Arial, sans-serif; padding: 20px; }
-    input, select, button { margin: 10px 0; padding: 5px; }
-    .result span { font-weight: bold; }
-    .voltage-drop { color: black; }
-    .voltage-drop.orange { color: orange; }
-    .voltage-drop.red { color: red; }
-  </style>
-</head>
-<body>
-  <h1>Voltage Drop & Fuse Calculator</h1>
-
-  <label>System Voltage:
-    <select id="voltage" onchange="toggleCustomVoltage()">
-      <option value="12">12V</option>
-      <option value="24">24V</option>
-      <option value="48">48V</option>
-      <option value="custom">Custom</option>
-    </select>
-  </label><br>
-  <input type="number" id="customVoltage" placeholder="Enter custom voltage" style="display:none"><br>
-
-  <label>Inverter or Load Wattage:
-    <input type="number" id="wattage" placeholder="e.g. 2000">
-  </label><br>
-
-  <label>Cable Length in Metres (both ways):
-    <input type="number" id="length" placeholder="e.g. 5">
-  </label><br>
-
-  <button onclick="calculate()">Calculate</button>
-
-  <div class="result" id="result"></div>
-
-  <script>
-    function toggleCustomVoltage() {
-      const voltageSelect = document.getElementById('voltage');
-      const customVoltageInput = document.getElementById('customVoltage');
-      customVoltageInput.style.display = voltageSelect.value === 'custom' ? 'block' : 'none';
-    }
-
-    function calculate() {
-      const voltageSelect = document.getElementById('voltage');
-      const customVoltageInput = document.getElementById('customVoltage');
-      const wattage = parseFloat(document.getElementById('wattage').value);
-      const length = parseFloat(document.getElementById('length').value);
-
-      let voltage;
-      if (voltageSelect.value === 'custom') {
-        voltage = parseFloat(customVoltageInput.value);
-        if (isNaN(voltage)) {
-          alert('Please enter a valid custom voltage.');
-          return;
-        }
-      } else {
-        voltage = parseFloat(voltageSelect.value);
-      }
-
-    <!DOCTYPE html>
-<html lang="en">
-<head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>DC Voltage Drop & Fuse Calculator</title>
+  <title>Voltage Drop and Fuse Calculator</title>
   <style>
     body {
       font-family: Arial, sans-serif;
-      padding: 20px;
+      margin: 20px;
+      background-color: #f4f4f4;
+    }
+    .container {
       max-width: 800px;
       margin: auto;
-    }
-    input, select, button {
-      margin: 10px 0;
-      padding: 10px;
-      width: 100%;
+      padding: 20px;
+      background: white;
+      border-radius: 10px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
     }
     .result {
       font-weight: bold;
@@ -86,107 +24,51 @@
     .warning {
       color: orange;
     }
-    .danger {
+    .error {
       color: red;
-    }
-    .fine-tune {
-      display: none;
     }
   </style>
 </head>
 <body>
-  <h1>DC Voltage Drop & Fuse Calculator</h1>
+  <div class="container">
+    <h2>Voltage Drop and Fuse Calculator</h2>
+    <label>System Voltage (V): <input type="number" id="voltage" value="12" /></label><br /><br />
+    <label>Load Wattage (W): <input type="number" id="wattage" value="120" /></label><br /><br />
+    <label>Round-trip Cable Length (meters): <input type="number" id="length" value="10" /></label><br /><br />
+    <label>Cross-sectional Area (mm²): <input type="number" id="csa" value="4" /></label><br /><br />
+    <label>Number of Parallel Cables: <input type="number" id="parallel" value="1" /></label><br /><br />
+    <label>Conductor Resistance (Ohm/km): <input type="number" id="resistance" value="4.61" /></label><br /><br />
 
-  <label for="voltage">System Voltage (V):</label>
-  <select id="voltage">
-    <option value="12">12V</option>
-    <option value="24">24V</option>
-    <option value="48">48V</option>
-    <option value="custom">Custom</option>
-  </select>
+    <button onclick="calculate()">Calculate</button>
 
-  <div class="fine-tune" id="customVoltageBox">
-    <label for="customVoltage">Enter Custom Voltage (V):</label>
-    <input type="number" id="customVoltage" />
+    <h3>Results:</h3>
+    <div id="results"></div>
   </div>
 
-  <label for="wattage">Inverter/Load Wattage:</label>
-  <input type="number" id="wattage" />
-
-  <label for="length">Cable Length in Metres (both ways):</label>
-  <input type="number" id="length" />
-
-  <button onclick="calculate()">Calculate</button>
-
-  <div class="result" id="output"></div>
-
   <script>
-    const resistivity = 0.017; // Ohm·mm²/m for copper
-
     function calculate() {
-      let voltage = document.getElementById("voltage").value;
-      if (voltage === "custom") {
-        voltage = parseFloat(document.getElementById("customVoltage").value);
-      } else {
-        voltage = parseFloat(voltage);
-      }
-
-      const wattage = parseFloat(document.getElementById("wattage").value);
-      const length = parseFloat(document.getElementById("length").value);
-
-      if (!voltage || !wattage || !length) {
-        alert("Please fill out all fields.");
-        return;
-      }
+      const voltage = parseFloat(document.getElementById('voltage').value);
+      const wattage = parseFloat(document.getElementById('wattage').value);
+      const length = parseFloat(document.getElementById('length').value);
+      const csa = parseFloat(document.getElementById('csa').value);
+      const parallel = parseFloat(document.getElementById('parallel').value);
+      const resistancePerKm = parseFloat(document.getElementById('resistance').value);
 
       const current = wattage / voltage;
-      const sizes = [1.5, 2.5, 4, 6, 10, 16, 25, 35, 50, 70, 90];
-      let bestSize = null;
-      let voltageDrop = 0;
+      const resistance = (resistancePerKm / 1000) / (csa * parallel);
+      const vDrop = current * resistance * length;
+      const percentDrop = (vDrop / voltage) * 100;
 
-      for (let size of sizes) {
-        let drop = (2 * resistivity * length * current) / size;
-        if (drop <= voltage * 0.1) {
-          bestSize = size;
-          voltageDrop = drop;
-          break;
-        }
-      }
+      let vClass = '';
+      if (percentDrop > 10) vClass = 'error';
+      else if (percentDrop > 3) vClass = 'warning';
 
-      const roundedCurrent = Math.round(current * 10) / 10;
-      let recommendedFuse = Math.ceil(roundedCurrent * 1.25);
-      let fuseType = "Blade";
+      let fuse;
+      const roundedCurrent = Math.ceil(current);
+      if (roundedCurrent <= 25) fuse = nearest([5, 10, 15, 20, 25], roundedCurrent) + 'A Blade';
+      else if (roundedCurrent <= 180) fuse = nearest([30, 40, 50, 60, 80, 100, 125, 150, 175, 180], roundedCurrent) + 'A MIDI';
+      else if (roundedCurrent <= 600) fuse = nearest([200, 250, 300, 350, 400, 500, 600], roundedCurrent) + 'A MEGA';
+      else fuse = '>600A Type 3';
 
-      if (recommendedFuse > 25 && recommendedFuse <= 180) fuseType = "Midi";
-      else if (recommendedFuse > 180) fuseType = "Mega";
-
-      if (recommendedFuse > 500) {
-        document.getElementById("output").innerHTML = "Required fuse size exceeds 500A. Consider redesigning the system.";
-        return;
-      }
-
-      let dropClass = "";
-      if (voltageDrop > voltage * 0.1) dropClass = "danger";
-      else if (voltageDrop > voltage * 0.03) dropClass = "warning";
-
-      document.getElementById("output").innerHTML = `
-        Current: ${roundedCurrent} A<br>
-        Recommended Cable Size: ${bestSize ? bestSize + " mm²" : "Not compliant"}<br>
-        Voltage Drop: <span class="${dropClass}">${voltageDrop.toFixed(2)} V</span><br>
-        Recommended Fuse Size: ${recommendedFuse} A<br>
-        Recommended Fuse Type: ${fuseType}<br>
-        <small>*AS/NZS 3001.2 max 10% voltage drop for DC systems</small>
-      `;
-    }
-
-    document.getElementById("voltage").addEventListener("change", function () {
-      const box = document.getElementById("customVoltageBox");
-      if (this.value === "custom") {
-        box.style.display = "block";
-      } else {
-        box.style.display = "none";
-      }
-    });
-  </script>
-</body>
-</html>
+      document.getElementById('results').innerHTML = `
+        Load Current: <strong>${current.toFixed(2)} A</strong><br />
