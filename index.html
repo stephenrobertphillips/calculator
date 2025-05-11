@@ -62,59 +62,131 @@
         voltage = parseFloat(voltageSelect.value);
       }
 
-      if (isNaN(wattage) || isNaN(length)) {
-        alert('Please enter valid numbers for wattage and cable length.');
+    <!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DC Voltage Drop & Fuse Calculator</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      max-width: 800px;
+      margin: auto;
+    }
+    input, select, button {
+      margin: 10px 0;
+      padding: 10px;
+      width: 100%;
+    }
+    .result {
+      font-weight: bold;
+    }
+    .warning {
+      color: orange;
+    }
+    .danger {
+      color: red;
+    }
+    .fine-tune {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <h1>DC Voltage Drop & Fuse Calculator</h1>
+
+  <label for="voltage">System Voltage (V):</label>
+  <select id="voltage">
+    <option value="12">12V</option>
+    <option value="24">24V</option>
+    <option value="48">48V</option>
+    <option value="custom">Custom</option>
+  </select>
+
+  <div class="fine-tune" id="customVoltageBox">
+    <label for="customVoltage">Enter Custom Voltage (V):</label>
+    <input type="number" id="customVoltage" />
+  </div>
+
+  <label for="wattage">Inverter/Load Wattage:</label>
+  <input type="number" id="wattage" />
+
+  <label for="length">Cable Length in Metres (both ways):</label>
+  <input type="number" id="length" />
+
+  <button onclick="calculate()">Calculate</button>
+
+  <div class="result" id="output"></div>
+
+  <script>
+    const resistivity = 0.017; // Ohm·mm²/m for copper
+
+    function calculate() {
+      let voltage = document.getElementById("voltage").value;
+      if (voltage === "custom") {
+        voltage = parseFloat(document.getElementById("customVoltage").value);
+      } else {
+        voltage = parseFloat(voltage);
+      }
+
+      const wattage = parseFloat(document.getElementById("wattage").value);
+      const length = parseFloat(document.getElementById("length").value);
+
+      if (!voltage || !wattage || !length) {
+        alert("Please fill out all fields.");
         return;
       }
 
       const current = wattage / voltage;
-      const fuseCurrent = Math.ceil(current * 1.25);
+      const sizes = [1.5, 2.5, 4, 6, 10, 16, 25, 35, 50, 70, 90];
+      let bestSize = null;
+      let voltageDrop = 0;
 
-      // Recommend fuse type
-      let fuseType = '';
-      if (fuseCurrent <= 25) {
-        fuseType = 'Blade Fuse';
-      } else if (fuseCurrent <= 180) {
-        fuseType = 'Midi Fuse';
-      } else {
-        fuseType = 'Mega Fuse';
-      }
-
-      // Standard fuse options list (rounded preferred to nearest 5A)
-      const standardFuses = [5, 7.5, 10, 15, 20, 25, 30, 40, 50, 60, 70, 80, 100, 125, 150, 175, 200, 250, 300, 400, 500];
-      const fuseOptions = standardFuses.filter(f => f >= fuseCurrent && f <= current * 1.5);
-
-      // Cable sizing estimate (simplified reference table in mm²)
-      const cableSizes = [1.5, 2.5, 4, 6, 10, 16, 25, 35, 50, 70, 90];
-      const maxCurrentCapacity = [18, 24, 36, 45, 65, 90, 120, 140, 170, 200, 240];
-      let recommendedSize = 'Unknown';
-      for (let i = 0; i < cableSizes.length; i++) {
-        if (current <= maxCurrentCapacity[i]) {
-          recommendedSize = `${cableSizes[i]} mm²`;
+      for (let size of sizes) {
+        let drop = (2 * resistivity * length * current) / size;
+        if (drop <= voltage * 0.1) {
+          bestSize = size;
+          voltageDrop = drop;
           break;
         }
       }
 
-      // Voltage drop estimate (simplified, copper, mV/A/m)
-      const resistanceTable = {
-        1.5: 12, 2.5: 7.4, 4: 4.6, 6: 3.1, 10: 1.8, 16: 1.2,
-        25: 0.7, 35: 0.5, 50: 0.36, 70: 0.25, 90: 0.195
-      };
-      const resistance = resistanceTable[parseFloat(recommendedSize)] || 1.5;
-      const voltDrop = (current * length * resistance) / 1000;
-      const voltDropPercent = (voltDrop / voltage) * 100;
+      const roundedCurrent = Math.round(current * 10) / 10;
+      let recommendedFuse = Math.ceil(roundedCurrent * 1.25);
+      let fuseType = "Blade";
 
-      const dropClass = voltDropPercent > 10 ? 'red' : voltDropPercent > 3 ? 'orange' : 'black';
+      if (recommendedFuse > 25 && recommendedFuse <= 180) fuseType = "Midi";
+      else if (recommendedFuse > 180) fuseType = "Mega";
 
-      document.getElementById('result').innerHTML = `
-        <p>Current: <span>${current.toFixed(1)} A</span></p>
-        <p>Recommended Fuse Size: <span>${fuseOptions[0] || fuseCurrent} A</span></p>
-        <p>Recommended Fuse Type: <span>${fuseType}</span></p>
-        <p>Recommended Cable Size: <span>${recommendedSize}</span></p>
-        <p class="voltage-drop ${dropClass}">Voltage Drop: <span>${voltDrop.toFixed(2)} V (${voltDropPercent.toFixed(1)}%)</span>
-        ${voltDropPercent > 10 ? ' - <strong>Non-compliant to AS3001.2</strong>' : ''}</p>
+      if (recommendedFuse > 500) {
+        document.getElementById("output").innerHTML = "Required fuse size exceeds 500A. Consider redesigning the system.";
+        return;
+      }
+
+      let dropClass = "";
+      if (voltageDrop > voltage * 0.1) dropClass = "danger";
+      else if (voltageDrop > voltage * 0.03) dropClass = "warning";
+
+      document.getElementById("output").innerHTML = `
+        Current: ${roundedCurrent} A<br>
+        Recommended Cable Size: ${bestSize ? bestSize + " mm²" : "Not compliant"}<br>
+        Voltage Drop: <span class="${dropClass}">${voltageDrop.toFixed(2)} V</span><br>
+        Recommended Fuse Size: ${recommendedFuse} A<br>
+        Recommended Fuse Type: ${fuseType}<br>
+        <small>*AS/NZS 3001.2 max 10% voltage drop for DC systems</small>
       `;
     }
+
+    document.getElementById("voltage").addEventListener("change", function () {
+      const box = document.getElementById("customVoltageBox");
+      if (this.value === "custom") {
+        box.style.display = "block";
+      } else {
+        box.style.display = "none";
+      }
+    });
   </script>
 </body>
 </html>
