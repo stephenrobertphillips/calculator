@@ -105,9 +105,10 @@
 
       // Fuse recommendation
       const fuseSizes = [5,10,15,20,25,30,40,50,60,80,100,125,150,175,200,250,300,350,400,500,600,700,800,900,1000];
-      let fuse = "No suitable standard fuse available for this load";
+      const selectedAmpacity = getAmpacity(A, install, temp);
+      let fuse = "No suitable standard fuse for this load and selected cable; use a larger cable or reduce the load";
       for (let f of fuseSizes) {
-        if (f > I) { fuse = f + "A"; break; }
+        if (f > I && f <= selectedAmpacity) { fuse = f + "A"; break; }
       }
 
       // Recommended cable size based on ampacity and voltage drop
